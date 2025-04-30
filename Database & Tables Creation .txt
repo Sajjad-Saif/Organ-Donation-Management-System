@@ -1,0 +1,80 @@
+-- Create the database if it doesn't exist
+CREATE DATABASE IF NOT EXISTS organ_management;
+USE organ_management;
+
+-- Table for user login information (Donor/Recipient)
+CREATE TABLE userAccount (
+    userID INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('Donor', 'Recipient') NOT NULL
+);
+
+-- Table to store additional account info for Donors/Recipients
+CREATE TABLE accountInfo (
+    userID INT PRIMARY KEY,
+    firstname VARCHAR(50),
+    lastname VARCHAR(50),
+    email VARCHAR(255) UNIQUE,
+    age INT,
+    gender ENUM('Male', 'Female'),
+    bloodGroup ENUM('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'),
+    phone VARCHAR(15),
+    address TEXT,
+    userType ENUM('Donor', 'Recipient'),
+    FOREIGN KEY (userID) REFERENCES userAccount(userID)
+);
+
+-- Table for doctors' login information (separate from users)
+CREATE TABLE doctorAccount (
+    doctorID INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
+-- Table to store information related to organs (linked to Donors)
+CREATE TABLE organs (
+    organID INT AUTO_INCREMENT PRIMARY KEY,
+    donorID INT NOT NULL,
+    organType VARCHAR(50) NOT NULL,
+    availability ENUM('Yes', 'No') NOT NULL,
+    FOREIGN KEY (donorID) REFERENCES userAccount(userID),
+    UNIQUE (donorID, organType) -- Ensure each donor can donate only one type of each organ
+);
+
+-- Table to store doctors' information
+CREATE TABLE doctorInfo (
+    doctorID INT PRIMARY KEY,
+    userID INT,
+    name VARCHAR(100),
+    specialization VARCHAR(100),
+    phone VARCHAR(15),
+    FOREIGN KEY (userID) REFERENCES userAccount(userID)
+);
+
+-- Table to store transplant records
+CREATE TABLE transplantInfo (
+    transplantID INT AUTO_INCREMENT PRIMARY KEY,
+    donorID INT NOT NULL,
+    recipientID INT NOT NULL,
+    doctorID INT NOT NULL,
+    organType VARCHAR(50) NOT NULL,
+    date DATE NOT NULL,
+    status ENUM('Pending', 'Completed', 'Failed', 'Scheduled') NOT NULL DEFAULT 'Pending', -- Added directly here
+    FOREIGN KEY (donorID) REFERENCES userAccount(userID),
+    FOREIGN KEY (recipientID) REFERENCES userAccount(userID),
+    FOREIGN KEY (doctorID) REFERENCES doctorAccount(doctorID)
+);
+
+-- Table for organ requests
+CREATE TABLE organ_requests (
+    requestID INT AUTO_INCREMENT PRIMARY KEY,
+    recipientID INT,
+    organType VARCHAR(50),
+    bloodGroup VARCHAR(5), -- Blood group added
+    requestDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('Pending', 'Scheduled', 'Failed', 'Completed') DEFAULT 'Pending',  -- Status with possible transplant states
+    FOREIGN KEY (recipientID) REFERENCES userAccount(userID) ON DELETE CASCADE,
+    UNIQUE (recipientID, organType) -- Ensures uniqueness of requests per recipient-organ type
+);
+
